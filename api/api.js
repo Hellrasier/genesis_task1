@@ -1,7 +1,6 @@
-// const storage = require('../storage/storage.js')
-// const Security = require('./services/cryproCurrencies');
-const cryptoCurrencies = require('./services/cryproCurrencies')
-const auth = require('./services/authentification')
+const storage = require('../storage/storage.js')
+const Security = require('./security');
+const cryptoCurrencies = require('./cryproCurrencies')
 
 
 const emailAlreadyExist = email => {
@@ -31,7 +30,13 @@ const api = {
                 status: 409
             }
         }
-        auth.createUser({email, password})
+        const hashed_password = await Security.hashPassword(password)
+        const token = await Security.generateToken()
+        await storage.insert({
+            email: email,
+            password: hashed_password,
+            token: token
+        })
         return {
             body: `Created user with E-mail: ${email}`,
             status: 201
@@ -65,7 +70,7 @@ const api = {
     },
 
     '/btcRate/GET': async (_, {Authorization}) => {
-        if(!auth.a){
+        if(!storage.checkToken(Authorization)){
             return {
                 body: `Error, user is unauthorized`,
                 status: 401
